@@ -1,10 +1,50 @@
 services:
+  # k6 は xk6-output-influxdb 拡張をバイナリに組み込む必要があるため、公式イメージをそのまま使用できない。
+  # docker/k6/Dockerfile.k6 でカスタムビルドしたイメージを使用する。
   k6:
-    image: grafana/k6:2.0.0
+    container_name: load-bench-k6
+    build:
+      context: ./docker/k6
+      dockerfile: Dockerfile.k6
     volumes:
       - ./k6:/k6
       - ./results/k6:/results
     environment:
       - BASE_URL
-    profiles:
-      - k6
+      - ARTICLE_ID
+      - K6_INFLUXDB_ORGANIZATION=k6org
+      - K6_INFLUXDB_BUCKET=k6
+      - K6_INFLUXDB_TOKEN=k6token
+
+  # InfluxDB / Grafana は公式イメージを環境変数で設定するだけで動作するため、Dockerfile によるカスタムビルドは不要。
+  influxdb:
+    container_name: load-bench-influxdb
+    image: influxdb:2.9.1
+    ports:
+      - "18086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: k6org
+      DOCKER_INFLUXDB_INIT_BUCKET: k6
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: k6token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+
+  grafana:
+    container_name: load-bench-grafana
+    image: grafana/grafana:12.4.3
+    ports:
+      - "13000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - influxdb
+
+volumes:
+  influxdb-data:
+  grafana-data:
