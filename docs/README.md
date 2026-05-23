@@ -4,7 +4,7 @@
 
 ## Overview
 
-A load-testing platform using **k6** and **vegeta** that can run the same test
+A load-testing platform using **k6** that can run the same test
 scenarios against multiple project hosts by switching a single environment variable.
 
 ## Directory Structure
@@ -24,14 +24,8 @@ load-bench/
 │   ├── lib/                    # Shared utilities / helpers
 │   └── config/                 # Thresholds and options
 │
-├── vegeta/                     # High-precision rate-based testing
-│   ├── targets/
-│   │   └── api.tmpl            # URL template; expanded via envsubst
-│   └── config/                 # Rate and duration settings
-│
 ├── results/                    # Raw results (git-ignored)
-│   ├── k6/
-│   └── vegeta/
+│   └── k6/
 │
 ├── reports/                    # Generated reports and graphs
 │
@@ -66,13 +60,14 @@ PROJECT ?= local
 include hosts/$(PROJECT).env
 export
 
-k6-load:
- k6 run --env BASE_URL=$(BASE_URL) k6/scenarios/load.js
+k6-smoke:
+  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/smoke.js
 
-vegeta-attack:
- envsubst < vegeta/targets/api.tmpl | \
- vegeta attack -rate=50 -duration=30s | \
- vegeta report
+k6-load:
+  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/load.js
+
+k6-stress:
+  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/stress.js
 ```
 
 ### Usage
@@ -82,18 +77,9 @@ vegeta-attack:
 make k6-load
 
 # project-a
-make k6-load PROJECT=project-a
-
-# project-b
-make vegeta-attack PROJECT=project-b
+make k6-smoke PROJECT=project-a
+make k6-stress PROJECT=project-a
 ```
-
-## Tool Comparison
-
-| Tool   | Characteristics                               | Primary Use                              |
-| ------ | --------------------------------------------- | ---------------------------------------- |
-| k6     | JavaScript-based, flexible scenario authoring | Complex scenarios, ramping load tests    |
-| vegeta | Go-based, precise rate control                | Constant-rate attacks, throughput checks |
 
 ## Security
 
