@@ -32,8 +32,6 @@ load-bench/
 │       ├── scenarios.js        # Scenario stage definitions
 │       └── thresholds.js       # Threshold definitions
 │
-├── results/k6/                 # Raw results (git-ignored)
-├── reports/                    # Generated reports and graphs
 ├── docker-compose.yml          # k6 + InfluxDB v2 + Grafana
 └── Makefile                    # Unified command interface
 ```
@@ -83,8 +81,8 @@ Test scripts never hardcode a host — they reference environment variables inst
 ### Format: `hosts/<project>.env`
 
 ```env
-BASE_URL=https://api.example.com/v1
-ARTICLE_ID=article-xxxxxxxxxxxx
+BASE_URL=https://api.example.com
+ARTICLE_ID=your-article-id
 ```
 
 Commit `hosts/*.env.example` as a template; add `hosts/*.env` to `.gitignore`.
@@ -107,6 +105,7 @@ stack-down:
 
 k6-smoke:
   docker compose run --rm k6 run \
+    --out xk6-influxdb=http://influxdb:8086 \
     --env BASE_URL=$(BASE_URL) \
     --env ARTICLE_ID=$(ARTICLE_ID) \
     /k6/scenarios/sample/smoke.js

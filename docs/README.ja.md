@@ -31,8 +31,6 @@ load-bench/
 │       ├── scenarios.js        # シナリオステージ定義
 │       └── thresholds.js       # 閾値定義
 │
-├── results/k6/                 # 実行結果の生データ (git ignore 対象)
-├── reports/                    # 生成済みレポート・グラフ
 ├── docker-compose.yml          # k6 + InfluxDB v2 + Grafana
 └── Makefile                    # 実行コマンドの統一インターフェース
 ```
@@ -82,8 +80,8 @@ make stack-down
 ### `hosts/<project>.env` の形式
 
 ```env
-BASE_URL=https://api.example.com/v1
-ARTICLE_ID=article-xxxxxxxxxxxx
+BASE_URL=https://api.example.com
+ARTICLE_ID=your-article-id
 ```
 
 `hosts/*.env.example` をサンプルとしてコミットし、`hosts/*.env` は `.gitignore` に追加して秘匿する。
@@ -106,6 +104,7 @@ stack-down:
 
 k6-smoke:
   docker compose run --rm k6 run \
+    --out xk6-influxdb=http://influxdb:8086 \
     --env BASE_URL=$(BASE_URL) \
     --env ARTICLE_ID=$(ARTICLE_ID) \
     /k6/scenarios/sample/smoke.js
