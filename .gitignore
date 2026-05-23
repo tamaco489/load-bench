@@ -1,0 +1,5 @@
+hosts/*.env
+!hosts/*.env.example
+
+results/k6/*
+!results/k6/.gitkeep

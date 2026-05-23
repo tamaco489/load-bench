@@ -1,0 +1,10 @@
+services:
+  k6:
+    image: grafana/k6:2.0.0
+    volumes:
+      - ./k6:/k6
+      - ./results/k6:/results
+    environment:
+      - BASE_URL
+    profiles:
+      - k6
