@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-k6 と vegeta を使った負荷テスト基盤。`PROJECT` 変数でホストを切り替えることで、同一シナリオを複数のプロジェクトに対して実行できる。
+k6 を使った負荷テスト基盤。`PROJECT` 変数でホストを切り替えることで、同一シナリオを複数のプロジェクトに対して実行できる。
 
 ## 調査時の制約事項
 
@@ -18,7 +18,7 @@ k6 と vegeta を使った負荷テスト基盤。`PROJECT` 変数でホスト�
 
 > [!IMPORTANT]
 >
-> - **負荷テストの実行 (`make k6-*` / `make vegeta-*`) は必ずユーザーの承認を得てから行う。**
+> - **負荷テストの実行 (`make k6-*`) は必ずユーザーの承認を得てから行う。**
 >   外部サービスへの意図しない攻撃を防ぐため、Claude が自己判断で実行することを禁止する
 > - `hosts/*.env` はコミット禁止。コミット前に対象ファイルを必ず確認する
 > - **コミット・push は必ず `/smart-commit` スキル経由で実行するか、実行前にユーザーの承認を得ること。**
@@ -29,7 +29,6 @@ k6 と vegeta を使った負荷テスト基盤。`PROJECT` 変数でホスト�
 
 - `hosts/` — プロジェクト別ホスト設定 (`*.env` は gitignore 対象、`*.env.example` のみコミット)
 - `k6/` — JavaScript ベースの負荷テストシナリオ・共通ヘルパー・設定
-- `vegeta/` — Go ベースのレートテスト定義・設定
 - `results/` — 実行結果の生データ (gitignore 対象)
 - `reports/` — 生成済みレポート・グラフ
 - `.claude/rules/github/` — コミット・PR のルール
@@ -51,9 +50,6 @@ make k6-load PROJECT=project-a
 # k6 スモーク / ストレステスト
 make k6-smoke PROJECT=project-a
 make k6-stress PROJECT=project-a
-
-# vegeta レートテスト
-make vegeta-attack PROJECT=project-b
 ```
 
 ## Makefile の構造

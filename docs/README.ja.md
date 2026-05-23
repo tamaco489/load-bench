@@ -4,7 +4,7 @@
 
 ## 概要
 
-**k6** と **vegeta** を使った負荷テスト基盤。ホスト設定をプロジェクト別に分離することで、同じシナリオを複数のプロジェクトに対して切り替えて実行できる構成とする。
+**k6** を使った負荷テスト基盤。ホスト設定をプロジェクト別に分離することで、同じシナリオを複数のプロジェクトに対して切り替えて実行できる構成とする。
 
 ## ディレクトリ構成
 
@@ -23,14 +23,8 @@ load-bench/
 │   ├── lib/                    # 共通ユーティリティ・ヘルパー
 │   └── config/                 # thresholds・options の設定
 │
-├── vegeta/                     # Go ベースの高精度レートテスト
-│   ├── targets/
-│   │   └── api.tmpl            # ${BASE_URL}/path を envsubst で展開
-│   └── config/                 # レート・期間の設定
-│
 ├── results/                    # 実行結果 (git ignore 推奨)
-│   ├── k6/
-│   └── vegeta/
+│   └── k6/
 │
 ├── reports/                    # 生成済みレポート・グラフ
 │
@@ -64,13 +58,14 @@ PROJECT ?= local
 include hosts/$(PROJECT).env
 export
 
-k6-load:
- k6 run --env BASE_URL=$(BASE_URL) k6/scenarios/load.js
+k6-smoke:
+  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/smoke.js
 
-vegeta-attack:
- envsubst < vegeta/targets/api.tmpl | \
- vegeta attack -rate=50 -duration=30s | \
- vegeta report
+k6-load:
+  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/load.js
+
+k6-stress:
+  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/stress.js
 ```
 
 ### 実行例
@@ -80,18 +75,9 @@ vegeta-attack:
 make k6-load
 
 # project-a 向け
-make k6-load PROJECT=project-a
-
-# project-b 向け
-make vegeta-attack PROJECT=project-b
+make k6-smoke PROJECT=project-a
+make k6-stress PROJECT=project-a
 ```
-
-## ツール概要
-
-| ツール | 特性                                  | 主な用途                                 |
-| ------ | ------------------------------------- | ---------------------------------------- |
-| k6     | JavaScript ベース、シナリオ記述が柔軟 | 複雑なシナリオ・段階的な負荷テスト       |
-| vegeta | Go ベース、高精度なレート制御         | 一定レートでの継続攻撃・スループット測定 |
 
 ## セキュリティ
 
