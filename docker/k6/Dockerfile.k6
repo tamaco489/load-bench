@@ -1,0 +1,11 @@
+# k6 の拡張機能はプラグインとして実行時にロードする仕組みではなく、バイナリにコンパイルして組み込む必要がある (xk6 の仕様)。
+# そのため、xk6-output-influxdb を含むカスタム k6 バイナリをここでビルドする。
+FROM grafana/xk6:1.4.3 AS builder
+
+RUN xk6 build \
+    --with github.com/grafana/xk6-output-influxdb@v0.7.0 \
+    --output /tmp/k6
+
+FROM alpine:3.23
+COPY --from=builder /tmp/k6 /usr/local/bin/k6
+ENTRYPOINT ["k6"]
