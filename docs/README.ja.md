@@ -10,43 +10,78 @@
 
 ```text
 load-bench/
+├── docker/
+│   └── k6/
+│       └── Dockerfile.k6       # xk6-output-influxdb 組み込みのカスタム k6 イメージ
+│
 ├── hosts/                      # プロジェクト別ホスト設定
-│   ├── local.env               # BASE_URL=http://localhost:8080
-│   ├── project-a.env           # BASE_URL=https://api.project-a.com
-│   └── project-b.env           # BASE_URL=https://api.project-b.com
+│   ├── local.env               # BASE_URL=http://localhost:8080/...
+│   └── prd.env                 # BASE_URL=https://api.example.com/...
 │
 ├── k6/                         # JS ベースの負荷テスト
-│   ├── scenarios/              # シナリオ別スクリプト
-│   │   ├── smoke.js            # スモークテスト (最小検証)
-│   │   ├── load.js             # 通常負荷テスト
-│   │   └── stress.js           # ストレステスト
-│   ├── lib/                    # 共通ユーティリティ・ヘルパー
-│   └── config/                 # thresholds・options の設定
+│   ├── scenarios/
+│   │   └── sample/
+│   │       ├── smoke.js        # スモークテスト (1 VU / 1 分)
+│   │       ├── load.js         # 通常負荷テスト (最大 20 VU / 5 分)
+│   │       └── stress.js       # ストレステスト (最大 200 VU / 16 分)
+│   ├── lib/
+│   │   └── checks.js           # レスポンス共通チェックヘルパー
+│   └── config/
+│       ├── env.js              # 環境変数の一元管理
+│       ├── scenarios.js        # シナリオステージ定義
+│       └── thresholds.js       # 閾値定義
 │
-├── results/                    # 実行結果 (git ignore 推奨)
-│   └── k6/
-│
-├── reports/                    # 生成済みレポート・グラフ
-│
+├── docker-compose.yml          # k6 + InfluxDB v2 + Grafana
 └── Makefile                    # 実行コマンドの統一インターフェース
+```
+
+## セットアップ手順
+
+### 1. k6 カスタムイメージをビルドする
+
+`xk6-output-influxdb` 拡張を組み込んだカスタム k6 バイナリをビルドする。
+
+```bash
+make k6-build
+```
+
+### 2. 監視スタックを起動する
+
+InfluxDB と Grafana をバックグラウンドで起動する。
+
+```bash
+make stack-up
+```
+
+| サービス | URL                      | 認証情報       |
+| -------- | ------------------------ | -------------- |
+| InfluxDB | <http://localhost:18086> | admin/password |
+| Grafana  | <http://localhost:13000> | admin/admin    |
+
+### 3. テストを実行する
+
+```bash
+make k6-smoke  PROJECT=prd
+make k6-load   PROJECT=prd
+make k6-stress PROJECT=prd
+```
+
+### 4. 監視スタックを停止する
+
+```bash
+make stack-down
 ```
 
 ## ホスト管理方針
 
 ホスト (BASE_URL) はプロジェクト別に `hosts/` ディレクトリの `.env` ファイルで管理する。
-テストスクリプトはホストを直接持たず、環境変数 `BASE_URL` を参照する。
+テストスクリプトはホストを直接持たず、環境変数を参照する。
 
 ### `hosts/<project>.env` の形式
 
 ```env
-BASE_URL=https://api.project-a.com
-```
-
-認証トークンなど追加の環境変数も定義できる。
-
-```env
-BASE_URL=https://api.project-a.com
-API_KEY=your-api-key
+BASE_URL=https://api.example.com
+ARTICLE_ID=your-article-id
 ```
 
 `hosts/*.env.example` をサンプルとしてコミットし、`hosts/*.env` は `.gitignore` に追加して秘匿する。
@@ -58,25 +93,21 @@ PROJECT ?= local
 include hosts/$(PROJECT).env
 export
 
+k6-build:
+  docker compose build k6
+
+stack-up:
+  docker compose up -d influxdb grafana
+
+stack-down:
+  docker compose down influxdb grafana
+
 k6-smoke:
-  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/smoke.js
-
-k6-load:
-  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/load.js
-
-k6-stress:
-  docker compose run --rm k6 run --env BASE_URL=$(BASE_URL) /k6/scenarios/stress.js
-```
-
-### 実行例
-
-```bash
-# ローカル向け (デフォルト)
-make k6-load
-
-# project-a 向け
-make k6-smoke PROJECT=project-a
-make k6-stress PROJECT=project-a
+  docker compose run --rm k6 run \
+    --out xk6-influxdb=http://influxdb:8086 \
+    --env BASE_URL=$(BASE_URL) \
+    --env ARTICLE_ID=$(ARTICLE_ID) \
+    /k6/scenarios/sample/smoke.js
 ```
 
 ## セキュリティ

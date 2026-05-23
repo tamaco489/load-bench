@@ -8,7 +8,6 @@ services:
       dockerfile: Dockerfile.k6
     volumes:
       - ./k6:/k6
-      - ./results/k6:/results
     environment:
       - BASE_URL
       - ARTICLE_ID
@@ -42,6 +41,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - influxdb
 

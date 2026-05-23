@@ -27,10 +27,9 @@ k6 を使った負荷テスト基盤。`PROJECT` 変数でホストを切り替�
 
 ## 構成
 
+- `docker/` — カスタム Docker イメージ定義 (k6: xk6-output-influxdb 組み込み、Grafana プロビジョニング)
 - `hosts/` — プロジェクト別ホスト設定 (`*.env` は gitignore 対象、`*.env.example` のみコミット)
 - `k6/` — JavaScript ベースの負荷テストシナリオ・共通ヘルパー・設定
-- `results/` — 実行結果の生データ (gitignore 対象)
-- `reports/` — 生成済みレポート・グラフ
 - `.claude/rules/github/` — コミット・PR のルール
 
 ## 実行可能なスキル
@@ -43,13 +42,21 @@ k6 を使った負荷テスト基盤。`PROJECT` 変数でホストを切り替�
 ## コマンド
 
 ```bash
-# k6 負荷テスト (デフォルト: local)
-make k6-load
-make k6-load PROJECT=project-a
+# k6 カスタムイメージをビルド
+make k6-build
 
-# k6 スモーク / ストレステスト
-make k6-smoke PROJECT=project-a
-make k6-stress PROJECT=project-a
+# 監視スタック (InfluxDB + Grafana) の起動・停止
+make stack-up
+make stack-down
+
+# k6 負荷テスト (デフォルト: local)
+make k6-smoke
+make k6-load
+make k6-stress
+
+# プロジェクト指定
+make k6-smoke PROJECT=prd
+make k6-load  PROJECT=prd
 ```
 
 ## Makefile の構造
@@ -66,6 +73,6 @@ export
 
 `hosts/<project>.env` に `BASE_URL` を定義し、Makefile で `include` + `export` して各ツールへ渡す。
 
-- `hosts/local.env` — デフォルト (`http://localhost:8080`)
-- `hosts/<project>.env` — プロジェクト別 (`.gitignore` 対象)
-- `hosts/<project>.env.example` — コミット用サンプル
+- `hosts/local.env` — デフォルト (`http://localhost:8080/...`)
+- `hosts/prd.env` — 本番環境 (`.gitignore` 対象)
+- `hosts/*.env.example` — コミット用サンプル (`BASE_URL` + `ARTICLE_ID`)
